@@ -1,21 +1,23 @@
 #include "parsing.h"
-#define __SIZE_OF_SET_PARAM 4   //3+1 3 as number and  1 for :
-#define __SIZE_OF_SET 12
-#define __SIZE_OF_SET_HELP 2
-#define __SIZE_OF_MODE 5
-#define __SIZE_OF_MODE_HELP 2
-#define __SIZE_OF_OFF 3
-#define __SIZE_OF_HELP 1
-#define __OFFSET_FOR_COMMAND_SET __SIZE_OF_BUFFER + (i - __SIZE_OF_SET)
-#define __OFFSET_FOR_COMMAND_SET_HELP __SIZE_OF_BUFFER + (i - __SIZE_OF_SET_HELP)
-#define __OFFSET_FOR_COMMAND_MODE __SIZE_OF_BUFFER + (i - __SIZE_OF_MODE)
-#define __OFFSET_FOR_COMMAND_MODE_HELP __SIZE_OF_BUFFER + (i - __SIZE_OF_MODE_HELP)
-#define __OFFSET_FOR_COMMAND_OFF __SIZE_OF_BUFFER + (i - __SIZE_OF_OFF)
-#define __OFFSET_FOR_COMMAND_HELP __SIZE_OF_BUFFER + (i - __SIZE_OF_HELP)
 
-#define __MAX_POWER 600
-#define __MAX_VOLTAGE 600
-#define __MAX_AMPERAGE 8.0
+#define __SIZE_OF_SET_PARAM 	4   //3+1 3 as number and  1 for :
+#define __SIZE_OF_SET 				12
+#define __SIZE_OF_SET_HELP 		2
+#define __SIZE_OF_MODE 				5
+#define __SIZE_OF_MODE_HELP 	2
+#define __SIZE_OF_OFF 				3
+#define __SIZE_OF_HELP 				1
+
+#define __OFFSET_FOR_COMMAND_SET 				__SIZE_OF_BUFFER + (i - __SIZE_OF_SET)
+#define __OFFSET_FOR_COMMAND_SET_HELP		__SIZE_OF_BUFFER + (i - __SIZE_OF_SET_HELP)
+#define __OFFSET_FOR_COMMAND_MODE 			__SIZE_OF_BUFFER + (i - __SIZE_OF_MODE)
+#define __OFFSET_FOR_COMMAND_MODE_HELP 	__SIZE_OF_BUFFER + (i - __SIZE_OF_MODE_HELP)
+#define __OFFSET_FOR_COMMAND_OFF 				__SIZE_OF_BUFFER + (i - __SIZE_OF_OFF)
+#define __OFFSET_FOR_COMMAND_HELP 			__SIZE_OF_BUFFER + (i - __SIZE_OF_HELP)
+
+#define __MAX_POWER 		600
+#define __MAX_VOLTAGE 	600
+#define __MAX_AMPERAGE 	8.0
 
 
 volatile static	enum { 
@@ -29,7 +31,7 @@ volatile static	enum {
 	COMMAND_OFF,
 	COMMAND_HELP,
 	ERROR_
-} state = IDLE,check_buf = IDLE;
+} state = IDLE;
 
 void clearBufferGlobal(uint8_t *buffer_global);
 void copyBuffer(uint8_t *buffer_global, struct MyParsing *pars);
@@ -38,11 +40,11 @@ void chekbuf(struct MyParsing *pars);
 void myParsingInit(struct MyParsing *pars)
 {
 	pars->mode = 0;
-	for (int i = 0; i < __SIZE_OF_BUFFER; i++)
+	for (uint8_t i = 0; i < __SIZE_OF_BUFFER; i++)
 	{
 		pars->buffer_tmp[i] = 0;
 	}
-	pars->clearBufferGlobal = &clearBufferGlobal;
+	//pars->clearBufferGlobal = &clearBufferGlobal;
 	//pars->copyBuffer = &copyBuffer;
 	pars->parsing = &parsing;
 	//pars->chekbuf = &chekbuf;
@@ -62,14 +64,15 @@ void copyBuffer(uint8_t *buffer_global, struct MyParsing *pars)
 	while (1)
 	{
 		//to do
-		//block off global buffer
+		//block global buffer
 	}*/
-	for (int i = 0; i < __SIZE_OF_BUFFER; i++)
+	for (uint8_t i = 0; i < __SIZE_OF_BUFFER; i++)
 	{
 		pars->buffer_tmp[i] = buffer_global[i];
 	}
+	//to do clear global buffer
+	clearBufferGlobal(buffer_global); 
 	
-	pars->clearBufferGlobal(buffer_global); 
 	/*
 	while (1)
 	{
@@ -81,7 +84,6 @@ void copyBuffer(uint8_t *buffer_global, struct MyParsing *pars)
 uint8_t symbolProcessing(uint8_t ch)
 {
 	uint8_t OUT_FlagCommandRecognized 	= 0;	//0- parsing is processing, 1-success, 2 - fail
-	uint8_t num_of_param_for_set = 0;
 	
 	switch (state)
 	{
@@ -159,7 +161,7 @@ uint8_t symbolProcessing(uint8_t ch)
 		}
 	case COMMAND_MODE:
 		{
-			if (!(ch == 'd' || ch == 'e' || ch == '1' || ch == '0'))
+			if (!(ch == 'd' || ch == 'e' || ch == '1' || ch == '0' || ch == '\n'))
 			{
 				state = ERROR_;
 				OUT_FlagCommandRecognized = 2;  							//ERROR
@@ -272,12 +274,12 @@ uint8_t set(struct MyParsing *pars, uint16_t *power, uint16_t *voltage, double *
 	while (pars->buffer_tmp[i++] != 's') ;
 	for (uint8_t y = 0; y < 3; y++, i += 4)// 3 becouse 3 param in command set
 	{	//check that 3 digits are numbers (integer for 1st and 2nd param)
-		if ((pars->buffer_tmp[i] >= 48 && pars->buffer_tmp[i] <= 57)&&(pars->buffer_tmp[i + 1] >= 48 && pars->buffer_tmp[i + 1] <= 57)&&(pars->buffer_tmp[i + 2] >= 48 && pars->buffer_tmp[i + 2] <= 57)) 
+		if ((y==0||y==1)&&(pars->buffer_tmp[i] >= 48 && pars->buffer_tmp[i] <= 57)&&(pars->buffer_tmp[i + 1] >= 48 && pars->buffer_tmp[i + 1] <= 57)&&(pars->buffer_tmp[i + 2] >= 48 && pars->buffer_tmp[i + 2] <= 57)&&pars->buffer_tmp[i + 3] == ':') 
 		{		
 			tmp = (100 * (pars->buffer_tmp[i] - 48)) + (10 * (pars->buffer_tmp[i + 1] - 48)) + (pars->buffer_tmp[i + 2] - 48);
 		}
 		//check that 3 digits are numbers (double for 3d param)
-		else if((y == 2) && (pars->buffer_tmp[i] >= 48 && pars->buffer_tmp[i] <= 57) && (pars->buffer_tmp[i + 1] == '.') && (pars->buffer_tmp[i + 2] >= 48 && pars->buffer_tmp[i + 2] <= 57))
+		else if((y == 2) && (pars->buffer_tmp[i] >= 48 && pars->buffer_tmp[i] <= 57) && (pars->buffer_tmp[i + 1] == '.') && (pars->buffer_tmp[i + 2] >= 48 && pars->buffer_tmp[i + 2] <= 57) && (pars->buffer_tmp[i + 3] == '\n'))
 		{
 			tmp_amp = (double)(pars->buffer_tmp[i] - 48) + (double)(0.1*(pars->buffer_tmp[i + 2] - 48));
 		}
@@ -356,7 +358,7 @@ uint8_t parsing(uint8_t *buffer_global, struct MyParsing *pars, uint16_t *power,
 	uint8_t ch					= 0;
 	copyBuffer(buffer_global, pars);
 	chekbuf(pars);
-	for (int i = 0; i < __SIZE_OF_BUFFER; i++)
+	for (uint8_t i = 0; i < __SIZE_OF_BUFFER; i++)
 	{
 		ch = pars->buffer_tmp[i];
 		command_recognized = symbolProcessing(ch);
@@ -399,7 +401,7 @@ uint8_t parsing(uint8_t *buffer_global, struct MyParsing *pars, uint16_t *power,
 		}
 	}
 	
-	for (int i = 0; i < __SIZE_OF_BUFFER; i++)
+	for (uint8_t i = 0; i < __SIZE_OF_BUFFER; i++)
 	{
 		pars->buffer_tmp[i] = 0;
 	}
